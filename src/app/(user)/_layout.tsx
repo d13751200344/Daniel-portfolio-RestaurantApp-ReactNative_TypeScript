@@ -20,7 +20,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { session } = useAuth();
 
-  if (session) {
+  if (!session) {
     /* redirect to home if user is authenticated, and the user will be redirected to 
     somewhere from "/". */
     return <Redirect href="/" />;
