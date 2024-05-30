@@ -1,6 +1,8 @@
 import { createContext, useContext, PropsWithChildren, useState } from "react";
-import { CartItem, Product } from "@/types";
+import { CartItem, Tables } from "@/types";
 import { randomUUID } from "expo-crypto";
+
+type Product = Tables<"products">;
 
 // check "/src/types.tsx"
 type CartType = {
