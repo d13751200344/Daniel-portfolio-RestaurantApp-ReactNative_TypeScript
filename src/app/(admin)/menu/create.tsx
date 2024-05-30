@@ -1,17 +1,31 @@
-import { View, Text, StyleSheet, TextInput, Image, Alert } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Image,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { useState, useEffect } from "react";
 import Button from "@/components/Button";
 import { defaultPizzaImage } from "@/components/ProductListItem";
 import Colors from "@/constants/Colors";
 import * as ImagePicker from "expo-image-picker";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useInsertProduct, useUpdateProduct, useProduct } from "@/api/products";
+import {
+  useInsertProduct,
+  useUpdateProduct,
+  useProduct,
+  useDeleteProduct,
+} from "@/api/products";
 
 const CreateProductScreen = () => {
   const [name, setName] = useState("");
   const [price, setPrice] = useState(""); // We will convert this to a number later
   const [errors, setErrors] = useState("");
   const [image, setImage] = useState<string | null>(null); // for image picker
+  const [loading, setLoading] = useState(false);
 
   const { id: idString } = useLocalSearchParams();
   const id = parseFloat(
@@ -25,6 +39,7 @@ const CreateProductScreen = () => {
   const { mutate: insertProduct } = useInsertProduct();
   const { mutate: updateProduct } = useUpdateProduct();
   const { data: updatingProduct } = useProduct(id);
+  const { mutate: deleteProduct } = useDeleteProduct();
 
   const router = useRouter();
 
@@ -74,14 +89,18 @@ const CreateProductScreen = () => {
     if (!validateInput()) {
       return;
     }
+    setLoading(true); // Show loading indicator
     insertProduct(
       { name, price: parseFloat(price), image },
       {
         onSuccess: () => {
+          setLoading(false); // Hide loading indicator
           resetFields();
           router.back();
         },
-        onError: (error) => { //personal fix
+        onError: (error) => {
+          //personal fix
+          setLoading(false); // Hide loading indicator
           setErrors(error.message);
         },
       }
@@ -92,14 +111,18 @@ const CreateProductScreen = () => {
     if (!validateInput()) {
       return;
     }
+    setLoading(true); // Show loading indicator
     updateProduct(
       { id, name, price: parseFloat(price), image },
       {
         onSuccess: () => {
+          setLoading(false); // Hide loading indicator
           resetFields();
           router.back();
         },
-        onError: (error) => { //personal fix
+        onError: (error) => {
+          //personal fix
+          setLoading(false); // Hide loading indicator
           setErrors(error.message);
         },
       }
@@ -121,7 +144,19 @@ const CreateProductScreen = () => {
   };
 
   const onDelete = () => {
-    console.warn("delete");
+    setLoading(true); // Show loading indicator
+    deleteProduct(id, {
+      onSuccess: () => {
+        setLoading(false); // Hide loading indicator
+        resetFields();
+        router.replace("/(admin)");
+      },
+      onError: (error) => {
+        //personal fix
+        setLoading(false); // Hide loading indicator
+        setErrors(error.message);
+      },
+    });
   };
   const confirmDelete = () => {
     Alert.alert("Confirm", "Are you sure you want to delete this product?", [
@@ -167,6 +202,7 @@ const CreateProductScreen = () => {
           Delete
         </Text>
       )}
+      {loading && <ActivityIndicator size="large" color={Colors.light.tint} />}
     </View>
   );
 };
