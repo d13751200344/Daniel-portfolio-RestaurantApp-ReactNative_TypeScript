@@ -4,7 +4,8 @@ import Button from "@/components/Button";
 import { defaultPizzaImage } from "@/components/ProductListItem";
 import Colors from "@/constants/Colors";
 import * as ImagePicker from "expo-image-picker";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useInsertProduct, useUpdateProduct, useProduct } from "@/api/products";
 
 const CreateProductScreen = () => {
   const [name, setName] = useState("");
@@ -12,9 +13,29 @@ const CreateProductScreen = () => {
   const [errors, setErrors] = useState("");
   const [image, setImage] = useState<string | null>(null); // for image picker
 
-  const { id } = useLocalSearchParams();
-  const isUpdating =
-    !!id; /* If id is null, undefined, 0, NaN, '' (an empty string), or false, !!id will be false; For any other value (e.g., a non-empty string, a non-zero number), !!id will be true. */
+  const { id: idString } = useLocalSearchParams();
+  const id = parseFloat(
+    typeof idString === "string" ? idString : idString?.[0]
+  );
+  const isUpdating = !!idString; // when "idString" exists, "isUpdating" will be true
+  /* If id is null, undefined, 0, NaN, '' (an empty string), or false, !!id will be false; 
+  For any other value (e.g., a non-empty string, a non-zero number), !!id will be true. */
+
+  // mutate is a function that will trigger the mutation (useMutation() in index.ts)
+  const { mutate: insertProduct } = useInsertProduct();
+  const { mutate: updateProduct } = useUpdateProduct();
+  const { data: updatingProduct } = useProduct(id);
+
+  const router = useRouter();
+
+  /* Once we fetch the data, we will populate the fields with the data stored in the database */
+  useEffect(() => {
+    if (updatingProduct) {
+      setName(updatingProduct.name);
+      setPrice(updatingProduct.price.toString()); //as it's a number in the database
+      setImage(updatingProduct.image);
+    }
+  }, [updatingProduct]);
 
   const resetFields = () => {
     setName("");
@@ -37,14 +58,13 @@ const CreateProductScreen = () => {
       setErrors("Price must be a number");
       return false;
     }
-
     return true;
   };
 
   const onSubmit = () => {
     if (isUpdating) {
       // Update the product
-      onUpdateCreate();
+      onUpdate();
     } else {
       onCreate();
     }
@@ -54,18 +74,36 @@ const CreateProductScreen = () => {
     if (!validateInput()) {
       return;
     }
-
-    console.warn("create");
-    resetFields();
+    insertProduct(
+      { name, price: parseFloat(price), image },
+      {
+        onSuccess: () => {
+          resetFields();
+          router.back();
+        },
+        onError: (error) => { //personal fix
+          setErrors(error.message);
+        },
+      }
+    );
   };
 
-  const onUpdateCreate = () => {
+  const onUpdate = () => {
     if (!validateInput()) {
       return;
     }
-
-    console.warn("Updating product: ");
-    resetFields();
+    updateProduct(
+      { id, name, price: parseFloat(price), image },
+      {
+        onSuccess: () => {
+          resetFields();
+          router.back();
+        },
+        onError: (error) => { //personal fix
+          setErrors(error.message);
+        },
+      }
+    );
   };
 
   const pickImage = async () => {
