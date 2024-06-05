@@ -1,6 +1,9 @@
 import { createContext, useContext, PropsWithChildren, useState } from "react";
 import { CartItem, Tables } from "@/types";
 import { randomUUID } from "expo-crypto";
+import { useInsertOrder } from "@/api/orders";
+import { useRouter } from "expo-router";
+import { useInsertOrderItems } from "@/api/order-items";
 
 type Product = Tables<"products">;
 
@@ -10,6 +13,7 @@ type CartType = {
   addItem: (product: Product, size: CartItem["size"]) => void;
   updateQuantity: (itemId: string, amount: -1 | 1) => void;
   total: number;
+  checkout: () => void;
 };
 
 const CartContext = createContext<CartType>({
@@ -18,10 +22,17 @@ const CartContext = createContext<CartType>({
   addItem: () => {},
   updateQuantity: () => {},
   total: 0,
+  checkout: () => {},
 });
 
 const CartProvider = ({ children }: PropsWithChildren) => {
   const [items, setItems] = useState<CartItem[]>([]);
+
+  // get mutate functions from hooks and rename them
+  const { mutate: insertOrder } = useInsertOrder();
+  const { mutate: insertOrderItems } = useInsertOrderItems();
+
+  const router = useRouter();
 
   // update quantity of an item in the cart
   const updateQuantity = (itemId: string, amount: -1 | 1) => {
@@ -64,10 +75,44 @@ const CartProvider = ({ children }: PropsWithChildren) => {
     0
   );
 
+  const clearCart = () => {
+    setItems([]);
+  };
+
+  const checkout = () => {
+    console.warn("Checkout");
+    insertOrder(
+      { total },
+      {
+        onSuccess: saveOrderItems,
+      }
+    );
+  };
+
+  const saveOrderItems = (order: Tables<"orders">) => {
+    // create a parameter "order" object and it's type is Tables<"orders">
+    const orderItems = items.map((cartItem) => ({
+      // use `()` to wrap the returned objects so that JS can identify it correctly
+      order_id: order.id,
+      product_id: cartItem.product_id,
+      size: cartItem.size,
+      quantity: cartItem.quantity,
+    }));
+
+    insertOrderItems(orderItems, {
+      onSuccess: () => {
+        clearCart();
+        router.replace(`/(user)/orders/${order.id}`);
+      },
+    });
+  };
+
   return (
     /* CartContext.Provider is a wrapper component that provides the value to all its children; 
     items is equivalent to items: items below */
-    <CartContext.Provider value={{ items, addItem, updateQuantity, total }}>
+    <CartContext.Provider
+      value={{ items, addItem, updateQuantity, total, checkout }}
+    >
       {children}
     </CartContext.Provider>
   );
