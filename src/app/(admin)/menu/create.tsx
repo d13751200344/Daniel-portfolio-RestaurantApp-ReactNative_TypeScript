@@ -19,6 +19,10 @@ import {
   useProduct,
   useDeleteProduct,
 } from "@/api/products";
+import * as FileSystem from "expo-file-system";
+import { randomUUID } from "expo-crypto";
+import { supabase } from "@/lib/supabase";
+import { decode } from "base64-arraybuffer";
 
 const CreateProductScreen = () => {
   const [name, setName] = useState("");
@@ -85,13 +89,37 @@ const CreateProductScreen = () => {
     }
   };
 
-  const onCreate = () => {
+  // supabase upload function
+  const uploadImage = async () => {
+    if (!image?.startsWith("file://")) {
+      return;
+    }
+
+    const base64 = await FileSystem.readAsStringAsync(image, {
+      encoding: "base64",
+    });
+    const filePath = `${randomUUID()}.png`;
+    const contentType = "image/png";
+    const { data, error } = await supabase.storage
+      .from("product-images") // the bucket name
+      .upload(filePath, decode(base64), { contentType });
+
+    if (data) {
+      return data.path;
+    }
+  };
+
+  const onCreate = async () => {
     if (!validateInput()) {
       return;
     }
+
     setLoading(true); // Show loading indicator
+
+    const imagePath = await uploadImage();
+
     insertProduct(
-      { name, price: parseFloat(price), image },
+      { name, price: parseFloat(price), image: imagePath },
       {
         onSuccess: () => {
           setLoading(false); // Hide loading indicator
@@ -107,13 +135,16 @@ const CreateProductScreen = () => {
     );
   };
 
-  const onUpdate = () => {
+  const onUpdate = async () => {
     if (!validateInput()) {
       return;
     }
+
     setLoading(true); // Show loading indicator
+
+    const imagePath = await uploadImage();
     updateProduct(
-      { id, name, price: parseFloat(price), image },
+      { id, name, price: parseFloat(price), image: imagePath },
       {
         onSuccess: () => {
           setLoading(false); // Hide loading indicator
@@ -196,7 +227,11 @@ const CreateProductScreen = () => {
       />
 
       <Text style={styles.error}>{errors}</Text>
-      <Button onPress={onSubmit} text={isUpdating ? "Update" : "Create"} />
+      <Button
+        onPress={onSubmit}
+        text={isUpdating ? "Update" : "Create"}
+        disabled={loading}
+      />
       {isUpdating && (
         <Text onPress={confirmDelete} style={styles.textButton}>
           Delete

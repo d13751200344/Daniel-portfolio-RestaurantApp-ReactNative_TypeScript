@@ -4,7 +4,6 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
   Pressable,
   ActivityIndicator,
 } from "react-native";
@@ -15,6 +14,7 @@ import Button from "@/components/Button";
 import { PizzaSize } from "@/types";
 import { useCart } from "@/providers/CartProvider";
 import { useProduct } from "@/api/products";
+import RemoteImage from "@/components/RemoteImage";
 
 const sizes: PizzaSize[] = ["S", "M", "L", "XL"];
 
@@ -31,20 +31,11 @@ const ProductDetailsScreen = () => {
   // default to medium size
   const [selectedSize, setSelectedSize] = useState<PizzaSize>("M");
 
-  // dummy data source
-  //const product = products.find((p) => p.id.toString() === id);
-
   const addToCart = () => {
     if (!product) return;
     addItem(product, selectedSize);
     router.push("/cart"); //navigate to cart screen automatically
   };
-
-  /* dummy data source
-  if (!product) {
-    return <Text>Product not found</Text>;
-  }
-*/
 
   if (isLoading) {
     return <ActivityIndicator />;
@@ -57,8 +48,10 @@ const ProductDetailsScreen = () => {
   return (
     <View>
       <Stack.Screen options={{ title: product.name }} />
-      <Image
-        source={{ uri: product.image || defaultPizzaImage }}
+      
+      <RemoteImage
+        path={product?.image}
+        fallback={defaultPizzaImage}
         style={styles.image}
       />
 
