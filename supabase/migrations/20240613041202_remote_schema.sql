@@ -1,0 +1,41 @@
+/*CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user(); */
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'on_auth_user_created') THEN
+    CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+  END IF;
+END $$;
+
+create policy "Allow authenticated user to read and create 16wiy3a_0"
+on "storage"."objects"
+as permissive
+for select
+to authenticated
+using ((bucket_id = 'product-images'::text));
+
+
+create policy "Allow authenticated user to read and create 16wiy3a_1"
+on "storage"."objects"
+as permissive
+for insert
+to authenticated
+with check ((bucket_id = 'product-images'::text));
+
+
+create policy "Anyone can upload an avatar."
+on "storage"."objects"
+as permissive
+for insert
+to public
+with check ((bucket_id = 'avatars'::text));
+
+
+create policy "Avatar images are publicly accessible."
+on "storage"."objects"
+as permissive
+for select
+to public
+using ((bucket_id = 'avatars'::text));
+
+
+

@@ -1,8 +1,10 @@
 import "react-native-url-polyfill/auto";
 import * as SecureStore from "expo-secure-store";
 import { createClient } from "@supabase/supabase-js";
-import { Database } from "../database.types";
+import { Database } from "@/database.types";
 
+/* After an user logs in, we store their session (access token & refresh_token) in 
+the secure store in supabase client. */
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => {
     return SecureStore.getItemAsync(key);
@@ -15,15 +17,14 @@ const ExpoSecureStoreAdapter = {
   },
 };
 
-export const supabase = createClient<Database>(
-  "https://whgnezywzotjkowdnury.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoZ25lenl3em90amtvd2RudXJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTY0NDMwMTUsImV4cCI6MjAzMjAxOTAxNX0.3V5dVEwNolY4L4BRMmDD2IpQ_aaN8MVEB5fEiRV-yBA",
-  {
-    auth: {
-      storage: ExpoSecureStoreAdapter as any,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false,
-    },
-  }
-);
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON || "";
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: ExpoSecureStoreAdapter as any,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});
