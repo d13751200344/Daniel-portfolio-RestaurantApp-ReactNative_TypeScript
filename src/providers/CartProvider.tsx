@@ -4,6 +4,7 @@ import { randomUUID } from "expo-crypto";
 import { useInsertOrder } from "@/api/orders";
 import { useRouter } from "expo-router";
 import { useInsertOrderItems } from "@/api/order-items";
+import { initializePaymentSheet, openPaymentSheet } from "@/lib/stripe";
 
 type Product = Tables<"products">;
 
@@ -79,8 +80,14 @@ const CartProvider = ({ children }: PropsWithChildren) => {
     setItems([]);
   };
 
-  const checkout = () => {
-    console.warn("Checkout");
+  const checkout = async () => {
+    // cause in stripe the amount will be expressed in the lowest unit (cent)
+    await initializePaymentSheet(Math.floor(total * 100));
+    const payed = await openPaymentSheet();
+    if (!payed) {
+      return;
+    }
+
     insertOrder(
       { total },
       {
