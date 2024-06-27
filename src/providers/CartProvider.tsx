@@ -81,19 +81,23 @@ const CartProvider = ({ children }: PropsWithChildren) => {
   };
 
   const checkout = async () => {
-    // cause in stripe the amount will be expressed in the lowest unit (cent)
-    await initializePaymentSheet(Math.floor(total * 100));
-    const payed = await openPaymentSheet();
-    if (!payed) {
-      return;
-    }
-
-    insertOrder(
-      { total },
-      {
-        onSuccess: saveOrderItems,
+    try {
+      await initializePaymentSheet(Math.floor(total * 100));
+      const payed = await openPaymentSheet();
+      if (!payed) {
+        return;
       }
-    );
+
+      insertOrder(
+        { total },
+        {
+          onSuccess: saveOrderItems,
+        }
+      );
+    } catch (error) {
+      console.error("Checkout error:", error);
+      // Handle error accordingly
+    }
   };
 
   const saveOrderItems = (order: Tables<"orders">) => {
