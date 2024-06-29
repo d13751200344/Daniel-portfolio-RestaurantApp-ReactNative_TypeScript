@@ -10,6 +10,7 @@ const fetchPaymentSheetParams = async (amount: number) => {
   console.log("fetching payment sheet params for: ", amount);
   // Create payment session for our customer with the edge function to use paymentIntent
   try {
+    // Call the edge function and send a HTTP POST request with the amount from frontend to backend
     const { data, error } = await supabase.functions.invoke("payment-sheet", {
       body: { amount },
     });
